@@ -39,6 +39,14 @@ struct FoodSpawnTimer(Timer);
 #[derive(Resource)]
 struct BTimer(Timer);
 
+#[derive(PartialEq, Copy, Clone)]
+enum Direction { 
+    Left,
+    Up,
+    Right,
+    Down,
+}
+
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
@@ -95,7 +103,7 @@ fn food_spawner(
     mut timer: ResMut<FoodSpawnTimer>, 
     ) {
     
-    // This seems bad... checking every time if the timer has finished. Is it?
+    // This seems expensive... checking every time if the timer has finished. Is it?
     if !timer.0.tick(time.delta()).finished() {
         return; 
     }
