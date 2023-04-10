@@ -6,4 +6,5 @@ A guided tour of Bevy's Entity Component System
 https://github.com/bevyengine/bevy/blob/v0.9.1/examples/ecs/ecs_guide.rs
 
 
-
+The bevy cheatbook guided tutorial
+https://bevy-cheatbook.github.io/tutorial.html
