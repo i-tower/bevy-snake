@@ -1,33 +1,49 @@
 use bevy::prelude::*;
+use rand::prelude::random;
+
 
 const ARENA_WIDTH: u32 = 10;
 const ARENA_HEIGHT: u32 = 10;
+const SNAKE_HEAD_COLOR: Color = Color::rgb(0.7, 0.7, 0.7);
+const FOOD_COLOR: Color = Color::rgb(1.0, 0.0, 1.0);
 
-fn main() {
-    App::new()
-        .add_startup_system(setup_camera)
-        .add_startup_system(spawn_snake)
-        .add_system(snake_movement)
-        .add_systems((position_translation, size_scaling).chain())
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Snake!".to_string(),
-                resolution: bevy::window::WindowResolution::new(500.0, 500.0),
-                ..default()
-            }),
-            ..default()
-        }))
-        .run();
+#[derive(Component)]
+struct SnakeHead;
+
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
+struct Position {
+    x: i32,
+    y: i32,
 }
+
+#[derive(Component)]
+struct Size {
+    width: f32,
+    height: f32,
+}
+impl Size {
+    pub fn square(x: f32) -> Self {
+        Self {
+            width: x,
+            height: x,
+        }
+    }
+}
+
+#[derive(Component)]
+struct Food; 
+
+#[derive(Resource)]
+struct FoodSpawnTimer(Timer);
+
+#[derive(Resource)]
+struct BTimer(Timer);
 
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
-#[derive(Component)]
-struct SnakeHead;
 
-const SNAKE_HEAD_COLOR: Color = Color::rgb(0.7, 0.7, 0.7);
 
 fn spawn_snake(mut commands: Commands) {
     commands
@@ -72,26 +88,33 @@ fn snake_movement(
     }
 }
 
-#[derive(Component, Clone, Copy, PartialEq, Eq)]
-struct Position {
-    x: i32,
-    y: i32,
-}
 
-#[derive(Component)]
-struct Size {
-    width: f32,
-    height: f32,
-}
-impl Size {
-    pub fn square(x: f32) -> Self {
-        Self {
-            width: x,
-            height: x,
-        }
+fn food_spawner(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<FoodSpawnTimer>, 
+    ) {
+    
+    // This seems bad... checking every time if the timer has finished. Is it?
+    if !timer.0.tick(time.delta()).finished() {
+        return; 
     }
-}
 
+    commands
+    .spawn(SpriteBundle {
+        sprite: Sprite {
+            color: FOOD_COLOR,
+            ..default()
+        },
+        ..default()
+    })
+    .insert(Food)
+    .insert(Position { // it seem like there should be a better way to do this..
+        x: (random::<f32>() * ARENA_WIDTH as f32) as i32,
+        y: (random::<f32>() * ARENA_WIDTH as f32) as i32,
+    })
+    .insert(Size::square(0.8)); 
+}
 // size_scaling and position translation scale the board based on the size of the window and the
 // board size constants
 fn size_scaling(
@@ -124,4 +147,25 @@ fn position_translation(
             0.0,
         );
     }
+}
+
+fn main() {
+    App::new()
+        .insert_resource(ClearColor(Color::rgb(0.04, 0.04, 0.04)))
+        .add_startup_system(setup_camera)
+        .add_startup_system(spawn_snake)
+        .add_system(snake_movement)
+        .insert_resource(BTimer(Timer::from_seconds(0.15, TimerMode::Repeating)))
+        .insert_resource(FoodSpawnTimer(Timer::from_seconds(1.0, TimerMode::Repeating)))
+        .add_system(food_spawner.in_schedule(CoreSchedule::FixedUpdate))
+        .add_systems((position_translation, size_scaling).chain())
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Snake!".to_string(),
+                resolution: bevy::window::WindowResolution::new(500.0, 500.0),
+                ..default()
+            }),
+            ..default()
+        }))
+        .run();
 }
